@@ -1,0 +1,29 @@
+# BlindTape 数据层配置
+# 相对路径均相对于项目根目录（运行 CLI 时的工作目录）
+
+db_path: data/blindtape.db
+output_pool_csv: data/tradable_pool.csv
+
+# 复权方式：qfq=前复权（推荐，近期价格=真实成交价，历史价格按复权因子调整，
+# 不会因分红/拆分产生跳空缺口，适合K线形态训练和技术指标计算）
+adjust: qfq
+
+request:
+  sleep_min_sec: 0.5   # 每次请求后随机休眠的下限（秒）
+  sleep_max_sec: 1.0   # 上限
+  max_retries: 3       # 单次请求失败后的重试次数
+  retry_backoff_sec: 2.0  # 重试退避基数（第 n 次重试等待 n * backoff 秒）
+
+# 标的池过滤规则（草案，可调）
+pool_filter:
+  # 上市满 N 年：用该标的本地历史数据中最早一条交易日近似代表上市日
+  min_years_listed: 2
+
+  # 近期日均成交额门槛：取该标的最近 amount_lookback_days 个交易日的
+  # 成交额（元）算术平均，需 >= min_avg_amount_yuan 才算流动性合格
+  amount_lookback_days: 60
+  min_avg_amount_yuan: 5000000   # 500万元/日
+
+  # 有效交易日数量门槛：本地历史数据行数（非空收盘价）需 >= 此值，
+  # 用于剔除上市不久或数据缺失严重的迷你ETF（默认约等于2年交易日数）
+  min_valid_trading_days: 480
