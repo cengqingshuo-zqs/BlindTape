@@ -49,7 +49,7 @@ def test_create_session_returns_id_and_hides_identity(client):
     assert len(data["context_bars"]) == 20
     assert set(data["context_bars"][0].keys()) == {"open", "high", "low", "close", "volume"}
     assert data["total_capital_yuan"] == 100_000
-    assert data["default_ma_period"] == 20
+    assert data["default_ma_periods"] == [5, 20, 0, 0]
 
 
 def test_reveal_does_not_leak_symbol_or_date(client):

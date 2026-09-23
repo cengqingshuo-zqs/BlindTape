@@ -39,7 +39,8 @@ class SamplingConfig:
 @dataclass
 class TrainingConfig:
     total_capital_yuan: float = 100_000
-    default_ma_period: int = 20
+    # 最多同时显示4条MA，0表示这一条不启用
+    default_ma_periods: list[int] = field(default_factory=lambda: [5, 20, 0, 0])
 
 
 @dataclass

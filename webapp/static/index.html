@@ -14,31 +14,34 @@
   <header id="status-bar">
     <span id="progress-label">未开始</span>
     <span id="position-label">仓位 0成（¥0）</span>
+    <button id="btn-finish" class="finish-link">结束训练/揭晓</button>
   </header>
 
   <div id="ma-row">
-    <label for="ma-period">MA周期</label>
-    <input type="number" id="ma-period" min="2" max="200" value="20">
+    <span class="ma-label">MA</span>
+    <input type="number" class="ma-input" data-idx="0" min="0" max="200" value="5">
+    <input type="number" class="ma-input" data-idx="1" min="0" max="200" value="20">
+    <input type="number" class="ma-input" data-idx="2" min="0" max="200" value="">
+    <input type="number" class="ma-input" data-idx="3" min="0" max="200" value="">
   </div>
 
   <div id="chart-container"></div>
 
-  <div id="controls">
-    <div id="size-row">
-      <span class="size-label">操作仓位</span>
-      <button id="size-minus" class="stepper-btn">－</button>
-      <span id="size-value">3成（¥30,000）</span>
-      <button id="size-plus" class="stepper-btn">＋</button>
+  <div id="trade-row">
+    <div class="trade-btn-wrap">
+      <div id="buy-menu" class="trade-menu hidden"></div>
+      <button id="btn-buy" class="trade-btn buy">
+        <span class="trade-btn-title">买入</span>
+        <span class="trade-btn-hint" id="buy-hint">可买10/10仓</span>
+      </button>
     </div>
-    <div id="action-buttons">
-      <button id="btn-buy" class="action-btn buy">买入</button>
-      <button id="btn-add" class="action-btn add">加仓</button>
-      <button id="btn-sell" class="action-btn sell">减仓</button>
-      <button id="btn-liquidate" class="action-btn liquidate">清仓</button>
-    </div>
-    <div id="flow-buttons">
-      <button id="btn-next" class="flow-btn">推进下一根 ▶</button>
-      <button id="btn-finish" class="flow-btn finish">结束训练 / 揭晓</button>
+    <button id="btn-hold" class="trade-btn hold">观望</button>
+    <div class="trade-btn-wrap">
+      <div id="sell-menu" class="trade-menu hidden"></div>
+      <button id="btn-sell" class="trade-btn sell">
+        <span class="trade-btn-title">卖出</span>
+        <span class="trade-btn-hint" id="sell-hint">可卖0/10仓</span>
+      </button>
     </div>
   </div>
 

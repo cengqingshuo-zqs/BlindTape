@@ -88,7 +88,7 @@ def create_session():
         "window_trading_days": CFG.sampling.window_trading_days,
         "context_bars": _bar_records(sample.context_ohlcv),
         "total_capital_yuan": CFG.training.total_capital_yuan,
-        "default_ma_period": CFG.training.default_ma_period,
+        "default_ma_periods": CFG.training.default_ma_periods,
     }
 
 

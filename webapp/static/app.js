@@ -1,6 +1,7 @@
 "use strict";
 
 const DAY_SECONDS = 86400;
+const MA_COLORS = ["#f0d264", "#e0873a", "#4fd1c5", "#b48bea"];
 
 const state = {
   sessionId: null,
@@ -13,23 +14,21 @@ const state = {
   actionsSoFar: [],      // 本次训练目前为止的操作记录，用来算持仓成本
   position: 0,           // 0~1
   totalCapital: 100000,
-  sizeCheng: 3,          // 1~10成
 };
 
 const el = {
   progressLabel: document.getElementById("progress-label"),
   positionLabel: document.getElementById("position-label"),
-  maPeriodInput: document.getElementById("ma-period"),
-  sizeValue: document.getElementById("size-value"),
-  sizeMinus: document.getElementById("size-minus"),
-  sizePlus: document.getElementById("size-plus"),
+  maInputs: Array.from(document.querySelectorAll(".ma-input")),
   logList: document.getElementById("log-list"),
-  btnNext: document.getElementById("btn-next"),
   btnFinish: document.getElementById("btn-finish"),
   btnBuy: document.getElementById("btn-buy"),
-  btnAdd: document.getElementById("btn-add"),
   btnSell: document.getElementById("btn-sell"),
-  btnLiquidate: document.getElementById("btn-liquidate"),
+  btnHold: document.getElementById("btn-hold"),
+  buyMenu: document.getElementById("buy-menu"),
+  sellMenu: document.getElementById("sell-menu"),
+  buyHint: document.getElementById("buy-hint"),
+  sellHint: document.getElementById("sell-hint"),
   reviewOverlay: document.getElementById("review-overlay"),
   reviewIdentity: document.getElementById("review-identity"),
   reviewDates: document.getElementById("review-dates"),
@@ -38,8 +37,8 @@ const el = {
   btnRestart: document.getElementById("btn-restart"),
 };
 
-const MARKER_COLOR = { buy: "#d94848", add: "#e0873a", sell: "#3a7fe0", liquidate: "#c9d1e0" };
-const MARKER_TEXT = { buy: "B", add: "B", sell: "S", liquidate: "S" };
+const MARKER_COLOR = { buy: "#d94848", sell: "#3a7fe0", liquidate: "#c9d1e0" };
+const MARKER_TEXT = { buy: "B", sell: "S", liquidate: "S" };
 
 // ---- 训练中的盲测图（不带真实日期，timeScale整个隐藏掉） ----
 const blindChart = LightweightCharts.createChart(document.getElementById("chart-container"), {
@@ -53,21 +52,21 @@ const blindSeries = blindChart.addSeries(LightweightCharts.CandlestickSeries, {
   upColor: "#d94848", downColor: "#3a7fe0", borderVisible: false,
   wickUpColor: "#d94848", wickDownColor: "#3a7fe0",
 });
-const blindMaSeries = blindChart.addSeries(LightweightCharts.LineSeries, {
-  color: "#f0d264", lineWidth: 1,
-});
+const blindMaSeriesList = MA_COLORS.map((color) =>
+  blindChart.addSeries(LightweightCharts.LineSeries, { color, lineWidth: 1 })
+);
 let blindMarkersPrimitive = null;
 let blindCostLine = null;
 let blindLatestLine = null;
 
 let reviewChart = null;
 let reviewCandleSeries = null;
-let reviewMaSeries = null;
+let reviewMaSeriesList = null;
 let reviewMarkersPrimitive = null;
-let reviewCostLine = null;
-let reviewLatestLine = null;
 let equityChart = null;
 let equityLineSeries = null;
+let reviewCostLine = null;
+let reviewLatestLine = null;
 
 async function api(method, path, body) {
   const resp = await fetch(path, {
@@ -110,33 +109,30 @@ function computeFinalAvgCost(actions) {
   return avgCost;
 }
 
-function updateSizeLabel() {
-  const yuan = (state.totalCapital * state.sizeCheng) / 10;
-  el.sizeValue.textContent = `${state.sizeCheng}成（¥${yuan.toLocaleString()}）`;
+function currentTenths() {
+  return Math.round(state.position * 10);
 }
 
 function updatePositionLabel() {
   const yuan = state.totalCapital * state.position;
-  el.positionLabel.textContent = `仓位 ${(state.position * 10).toFixed(1)}成（¥${Math.round(yuan).toLocaleString()}）`;
-}
-
-function setActionButtonsEnabled(enabled) {
-  [el.btnBuy, el.btnAdd, el.btnSell, el.btnLiquidate].forEach((b) => (b.disabled = !enabled));
+  el.positionLabel.textContent = `仓位 ${currentTenths()}成（¥${Math.round(yuan).toLocaleString()}）`;
 }
 
 function logAction(record) {
   const li = document.createElement("li");
-  const label = { buy: "买入", add: "加仓", sell: "减仓", liquidate: "清仓" }[record.action] || record.action;
-  li.textContent = `第${record.day_index + 1}天 ${label} @ ${record.price.toFixed(3)}  仓位 -> ${(record.position_after * 10).toFixed(1)}成`;
+  const label = record.action === "liquidate" ? "清仓" : (record.action === "buy" ? "买入" : "卖出");
+  li.textContent = `第${record.day_index + 1}天 ${label} @ ${record.price.toFixed(3)}  仓位 -> ${Math.round(record.position_after * 10)}成`;
   el.logList.prepend(li);
 }
 
 // ---- 盲测阶段图表更新 ----
 
 function rebuildBlindMaSeries() {
-  const period = Number(el.maPeriodInput.value) || 20;
-  const points = computeMA(state.closesSoFar, period);
-  blindMaSeries.setData(points.map((p) => ({ time: p.index * DAY_SECONDS, value: p.value })));
+  el.maInputs.forEach((input, i) => {
+    const period = Number(input.value) || 0;
+    const points = computeMA(state.closesSoFar, period);
+    blindMaSeriesList[i].setData(points.map((p) => ({ time: p.index * DAY_SECONDS, value: p.value })));
+  });
 }
 
 function updateBlindCostLine() {
@@ -186,6 +182,87 @@ function pushBlindMarker(record) {
   }
 }
 
+// ---- 买卖仓位菜单 ----
+
+function closeMenus() {
+  el.buyMenu.classList.add("hidden");
+  el.sellMenu.classList.add("hidden");
+  el.buyMenu.innerHTML = "";
+  el.sellMenu.innerHTML = "";
+}
+
+function menuItemLabel(target, kind) {
+  if (target === 10) return "加至满仓";
+  if (target === 0) return "清仓";
+  return kind === "buy" ? `加至${target}/10仓` : `减至${target}/10仓`;
+}
+
+function openBuyMenu() {
+  const tenths = currentTenths();
+  if (tenths >= 10 || state.done || state.dayIndex < 0) return;
+  closeMenus();
+  for (let target = 10; target > tenths; target--) {
+    const btn = document.createElement("button");
+    btn.className = "trade-menu-item buy-item";
+    btn.textContent = menuItemLabel(target, "buy");
+    btn.addEventListener("click", () => selectTarget(target));
+    el.buyMenu.appendChild(btn);
+  }
+  el.buyMenu.classList.remove("hidden");
+}
+
+function openSellMenu() {
+  const tenths = currentTenths();
+  if (tenths <= 0 || state.done || state.dayIndex < 0) return;
+  closeMenus();
+  const liquidateBtn = document.createElement("button");
+  liquidateBtn.className = "trade-menu-item liquidate-item";
+  liquidateBtn.textContent = "清仓";
+  liquidateBtn.addEventListener("click", () => selectTarget(0));
+  el.sellMenu.appendChild(liquidateBtn);
+  for (let target = tenths - 1; target >= 1; target--) {
+    const btn = document.createElement("button");
+    btn.className = "trade-menu-item sell-item";
+    btn.textContent = menuItemLabel(target, "sell");
+    btn.addEventListener("click", () => selectTarget(target));
+    el.sellMenu.appendChild(btn);
+  }
+  el.sellMenu.classList.remove("hidden");
+}
+
+async function selectTarget(target) {
+  closeMenus();
+  const targetFraction = target / 10;
+  const delta = targetFraction - state.position;
+  if (Math.abs(delta) < 1e-9) return;
+  const action = target === 0 ? "liquidate" : (delta > 0 ? "buy" : "sell");
+  try {
+    const record = await api("POST", `/api/sessions/${state.sessionId}/act`, { action, size: Math.abs(delta) });
+    state.position = record.position_after;
+    state.actionsSoFar.push(record);
+    updatePositionLabel();
+    updateBlindCostLine();
+    pushBlindMarker(record);
+    logAction(record);
+    updateTradeControls();
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+  await revealNext();
+}
+
+function updateTradeControls() {
+  const tenths = currentTenths();
+  el.buyHint.textContent = `可买${10 - tenths}/10仓`;
+  el.sellHint.textContent = `可卖${tenths}/10仓`;
+  const disabled = state.done || state.dayIndex < 0;
+  el.btnBuy.disabled = disabled || tenths >= 10;
+  el.btnSell.disabled = disabled || tenths <= 0;
+  el.btnHold.disabled = disabled;
+  el.btnHold.textContent = tenths > 0 ? "持有" : "观望";
+}
+
 // ---- 会话生命周期 ----
 
 async function startNewSession() {
@@ -196,8 +273,7 @@ async function startNewSession() {
   state.actionsSoFar = [];
   state._blindMarkers = [];
   el.logList.innerHTML = "";
-  setActionButtonsEnabled(false);
-  el.btnNext.disabled = false;
+  closeMenus();
 
   if (blindCostLine) { blindSeries.removePriceLine(blindCostLine); blindCostLine = null; }
   if (blindLatestLine) { blindSeries.removePriceLine(blindLatestLine); blindLatestLine = null; }
@@ -208,7 +284,9 @@ async function startNewSession() {
   state.totalBars = data.total_bars;
   state.contextDays = data.context_bars.length;
   state.totalCapital = data.total_capital_yuan;
-  el.maPeriodInput.value = data.default_ma_period;
+  data.default_ma_periods.forEach((p, i) => {
+    if (el.maInputs[i]) el.maInputs[i].value = p > 0 ? p : "";
+  });
 
   const contextData = data.context_bars.map((bar, i) => ({
     time: i * DAY_SECONDS, open: bar.open, high: bar.high, low: bar.low, close: bar.close,
@@ -220,9 +298,11 @@ async function startNewSession() {
     updateBlindLatestLine(state.closesSoFar[state.closesSoFar.length - 1]);
   }
 
-  el.progressLabel.textContent = `第 0 / ${state.totalBars} 天（代码和日期已隐藏）`;
   updatePositionLabel();
-  updateSizeLabel();
+  updateTradeControls();
+
+  // 一进训练就直接看到第一根可操作的K线，不用先点一下才能看
+  await revealNext();
 }
 
 async function revealNext() {
@@ -230,8 +310,8 @@ async function revealNext() {
   const data = await api("POST", `/api/sessions/${state.sessionId}/reveal`);
   if (data.done) {
     state.done = true;
-    el.btnNext.disabled = true;
-    el.progressLabel.textContent = `窗口已走完（${state.totalBars}/${state.totalBars} 天），点"结束训练/揭晓"看结果`;
+    el.progressLabel.textContent = `窗口已走完（${state.totalBars}/${state.totalBars} 天），点右上角"结束训练/揭晓"看结果`;
+    updateTradeControls();
     return;
   }
   state.dayIndex = data.day_index;
@@ -245,24 +325,8 @@ async function revealNext() {
   rebuildBlindMaSeries();
   updateBlindLatestLine(bar.close);
 
-  el.progressLabel.textContent = `第 ${state.dayIndex + 1} / ${state.totalBars} 天（代码和日期已隐藏）`;
-  setActionButtonsEnabled(true);
-}
-
-async function doAction(action) {
-  if (!state.sessionId || state.dayIndex < 0) return;
-  const size = state.sizeCheng / 10;
-  try {
-    const record = await api("POST", `/api/sessions/${state.sessionId}/act`, { action, size });
-    state.position = record.position_after;
-    state.actionsSoFar.push(record);
-    updatePositionLabel();
-    updateBlindCostLine();
-    pushBlindMarker(record);
-    logAction(record);
-  } catch (err) {
-    alert(err.message);
-  }
+  el.progressLabel.textContent = `第 ${state.dayIndex + 1} / ${state.totalBars} 天`;
+  updateTradeControls();
 }
 
 function renderStats(perf, totalCapital) {
@@ -291,7 +355,9 @@ function ensureReviewCharts() {
       upColor: "#d94848", downColor: "#3a7fe0", borderVisible: false,
       wickUpColor: "#d94848", wickDownColor: "#3a7fe0",
     });
-    reviewMaSeries = reviewChart.addSeries(LightweightCharts.LineSeries, { color: "#f0d264", lineWidth: 1 });
+    reviewMaSeriesList = MA_COLORS.map((color) =>
+      reviewChart.addSeries(LightweightCharts.LineSeries, { color, lineWidth: 1 })
+    );
   }
   if (!equityChart) {
     equityChart = LightweightCharts.createChart(document.getElementById("equity-chart-container"), {
@@ -326,10 +392,12 @@ async function finishAndReveal() {
   }));
   reviewCandleSeries.setData(candleData);
 
-  const period = Number(el.maPeriodInput.value) || 20;
   const allCloses = fullRows.map((r) => r.close);
-  const maPoints = computeMA(allCloses, period);
-  reviewMaSeries.setData(maPoints.map((p) => ({ time: fullRows[p.index].trade_date, value: p.value })));
+  el.maInputs.forEach((input, i) => {
+    const period = Number(input.value) || 0;
+    const points = computeMA(allCloses, period);
+    reviewMaSeriesList[i].setData(points.map((p) => ({ time: fullRows[p.index].trade_date, value: p.value })));
+  });
 
   const markers = answer.actions.map((a) => ({
     time: answer.ohlcv[a.day_index].trade_date,
@@ -385,21 +453,29 @@ async function exportSession() {
   URL.revokeObjectURL(url);
 }
 
-el.maPeriodInput.addEventListener("change", () => rebuildBlindMaSeries());
-el.sizeMinus.addEventListener("click", () => {
-  state.sizeCheng = Math.max(1, state.sizeCheng - 1);
-  updateSizeLabel();
+el.maInputs.forEach((input) => input.addEventListener("change", () => rebuildBlindMaSeries()));
+
+el.btnBuy.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const willOpen = el.buyMenu.classList.contains("hidden");
+  closeMenus();
+  if (willOpen) openBuyMenu();
 });
-el.sizePlus.addEventListener("click", () => {
-  state.sizeCheng = Math.min(10, state.sizeCheng + 1);
-  updateSizeLabel();
+el.btnSell.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const willOpen = el.sellMenu.classList.contains("hidden");
+  closeMenus();
+  if (willOpen) openSellMenu();
 });
-el.btnNext.addEventListener("click", () => revealNext().catch((e) => alert(e.message)));
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".trade-btn-wrap")) closeMenus();
+});
+
+el.btnHold.addEventListener("click", () => {
+  closeMenus();
+  revealNext().catch((e) => alert(e.message));
+});
 el.btnFinish.addEventListener("click", () => finishAndReveal().catch((e) => alert(e.message)));
-el.btnBuy.addEventListener("click", () => doAction("buy"));
-el.btnAdd.addEventListener("click", () => doAction("add"));
-el.btnSell.addEventListener("click", () => doAction("sell"));
-el.btnLiquidate.addEventListener("click", () => doAction("liquidate"));
 el.btnExport.addEventListener("click", () => exportSession().catch((e) => alert(e.message)));
 el.btnRestart.addEventListener("click", () => {
   el.reviewOverlay.classList.add("hidden");
