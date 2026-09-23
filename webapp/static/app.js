@@ -48,12 +48,18 @@ const blindChart = LightweightCharts.createChart(document.getElementById("chart-
   rightPriceScale: { borderVisible: false },
   autoSize: true,
 });
+// lastValueVisible/priceLineVisible 关掉：每个series默认都会在价格轴上挂一条自己的
+// "最新值"横线+标签，5条MA/K线堆一起会跟我们自己画的成本线/最新价线混成一片，
+// 只留我们自己createPriceLine()画的那两条
 const blindSeries = blindChart.addSeries(LightweightCharts.CandlestickSeries, {
   upColor: "#d94848", downColor: "#3a7fe0", borderVisible: false,
   wickUpColor: "#d94848", wickDownColor: "#3a7fe0",
+  lastValueVisible: false, priceLineVisible: false,
 });
 const blindMaSeriesList = MA_COLORS.map((color) =>
-  blindChart.addSeries(LightweightCharts.LineSeries, { color, lineWidth: 1 })
+  blindChart.addSeries(LightweightCharts.LineSeries, {
+    color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false,
+  })
 );
 let blindMarkersPrimitive = null;
 let blindCostLine = null;
@@ -354,9 +360,12 @@ function ensureReviewCharts() {
     reviewCandleSeries = reviewChart.addSeries(LightweightCharts.CandlestickSeries, {
       upColor: "#d94848", downColor: "#3a7fe0", borderVisible: false,
       wickUpColor: "#d94848", wickDownColor: "#3a7fe0",
+      lastValueVisible: false, priceLineVisible: false,
     });
     reviewMaSeriesList = MA_COLORS.map((color) =>
-      reviewChart.addSeries(LightweightCharts.LineSeries, { color, lineWidth: 1 })
+      reviewChart.addSeries(LightweightCharts.LineSeries, {
+        color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false,
+      })
     );
   }
   if (!equityChart) {
