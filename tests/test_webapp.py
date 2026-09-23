@@ -33,6 +33,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(webapp_main, "POOL_DF", pd.DataFrame([{"symbol": "510300", "in_pool": True}]))
     monkeypatch.setattr(webapp_main, "SESSIONS", {})
     webapp_main.CFG.sampling.window_trading_days = 30
+    webapp_main.CFG.sampling.context_days = 20
 
     return TestClient(webapp_main.app)
 
@@ -45,6 +46,10 @@ def test_create_session_returns_id_and_hides_identity(client):
     assert data["total_bars"] == 30
     assert "symbol" not in data
     assert "name" not in data
+    assert len(data["context_bars"]) == 20
+    assert set(data["context_bars"][0].keys()) == {"open", "high", "low", "close", "volume"}
+    assert data["total_capital_yuan"] == 100_000
+    assert data["default_ma_period"] == 20
 
 
 def test_reveal_does_not_leak_symbol_or_date(client):
@@ -101,6 +106,8 @@ def test_full_flow_reveal_act_finish_answer_export(client, tmp_path, monkeypatch
     assert answer["symbol"] == "510300"
     assert answer["name"] == "沪深300ETF"
     assert len(answer["ohlcv"]) == 30
+    assert len(answer["context_ohlcv"]) == 20
+    assert "trade_date" in answer["context_ohlcv"][0]
     assert len(answer["actions"]) == 1
 
     export_resp = client.get(f"/api/sessions/{session_id}/export")

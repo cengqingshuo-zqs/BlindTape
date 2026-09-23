@@ -69,6 +69,12 @@ def _get_entry(session_id: str) -> _SessionEntry:
 app = FastAPI(title="BlindTape")
 
 
+def _bar_records(ohlcv) -> list[dict]:
+    """只给OHLCV数值，不带trade_date——盲测阶段不能泄露日期。"""
+    cols = ["open", "high", "low", "close", "volume"]
+    return ohlcv[cols].to_dict(orient="records")
+
+
 @app.post("/api/sessions")
 def create_session():
     with db.connect(str(PROJECT_ROOT / CFG.db_path)) as conn:
@@ -80,6 +86,9 @@ def create_session():
         "session_id": session_id,
         "total_bars": session.total_bars,
         "window_trading_days": CFG.sampling.window_trading_days,
+        "context_bars": _bar_records(sample.context_ohlcv),
+        "total_capital_yuan": CFG.training.total_capital_yuan,
+        "default_ma_period": CFG.training.default_ma_period,
     }
 
 
@@ -130,6 +139,7 @@ def answer(session_id: str):
         "name": entry.sample.name,
         "start_date": entry.sample.start_date,
         "end_date": entry.sample.end_date,
+        "context_ohlcv": entry.sample.context_ohlcv.to_dict(orient="records"),
         "ohlcv": entry.sample.ohlcv.to_dict(orient="records"),
         "actions": [
             {

@@ -21,7 +21,8 @@ class Sample:
     name: str
     start_date: str
     end_date: str
-    ohlcv: pd.DataFrame  # 按 trade_date 升序，只含 OHLCV_COLUMNS
+    ohlcv: pd.DataFrame  # 训练窗口，按 trade_date 升序，只含 OHLCV_COLUMNS
+    context_ohlcv: pd.DataFrame  # 训练窗口之前的历史背景，一进训练就直接展示，不逐根推进、不能操作
 
 
 def _expected_calendar_span(window_days: int) -> float:
@@ -45,7 +46,8 @@ def sample_window(
         raise ValueError("标的池为空（in_pool=True 的行数为0），先确认 build-pool 的过滤参数")
 
     names = db.get_etf_names(conn)
-    expected_span = _expected_calendar_span(cfg.window_trading_days)
+    total_days = cfg.context_days + cfg.window_trading_days
+    expected_span = _expected_calendar_span(total_days)
     max_span = expected_span * cfg.max_calendar_span_ratio
 
     for _ in range(cfg.max_start_search_attempts):
@@ -53,15 +55,20 @@ def sample_window(
         # 推断成int64，之后无论是查db还是查names字典都会因为类型不一致而出问题
         symbol = str(rng.choice(candidates))
         daily = db.get_daily_df(conn, symbol).dropna(subset=["close"]).reset_index(drop=True)
-        if len(daily) < cfg.window_trading_days:
+        if len(daily) < total_days:
             continue
 
-        start_idx = rng.randint(0, len(daily) - cfg.window_trading_days)
+        start_idx = rng.randint(cfg.context_days, len(daily) - cfg.window_trading_days)
+        context = daily.iloc[start_idx - cfg.context_days: start_idx].reset_index(drop=True)
         window = daily.iloc[start_idx: start_idx + cfg.window_trading_days].reset_index(drop=True)
 
         start_date = datetime.strptime(window["trade_date"].iloc[0], "%Y-%m-%d").date()
+        context_start = (
+            datetime.strptime(context["trade_date"].iloc[0], "%Y-%m-%d").date()
+            if cfg.context_days > 0 else start_date
+        )
         end_date = datetime.strptime(window["trade_date"].iloc[-1], "%Y-%m-%d").date()
-        calendar_span = (end_date - start_date).days
+        calendar_span = (end_date - context_start).days
         if calendar_span > max_span:
             continue
 
@@ -71,6 +78,7 @@ def sample_window(
             start_date=start_date.isoformat(),
             end_date=end_date.isoformat(),
             ohlcv=window[OHLCV_COLUMNS],
+            context_ohlcv=context[OHLCV_COLUMNS],
         )
 
     raise RuntimeError(

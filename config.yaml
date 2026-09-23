@@ -30,6 +30,12 @@ pool_filter:
 
 # 随机抽样引擎（训练窗口）参数
 sampling:
-  window_trading_days: 150      # 每次训练固定抽150个交易日的窗口
+  window_trading_days: 150      # 每次训练固定抽150个交易日的窗口（逐根推进，可操作）
+  context_days: 100             # 训练窗口之前额外展示的历史背景天数（一进去就直接看到，不逐根推进，不能操作，只是给个走势背景）
   max_start_search_attempts: 50 # 抽到数据不够/窗口质量不合格时的重试上限
-  max_calendar_span_ratio: 1.8  # 窗口日历天跨度超过理论交易日跨度的倍数就重抽（剔除中途长期停牌的窗口）
+  max_calendar_span_ratio: 1.8  # (背景+窗口)日历天跨度超过理论交易日跨度的倍数就重抽（剔除中途长期停牌的窗口）
+
+# 训练前端参数
+training:
+  total_capital_yuan: 100000  # 虚拟总资金，分成10成来操作仓位
+  default_ma_period: 20       # 默认显示的MA周期（跟v1.1系统信号复刻的MA20保持一致）

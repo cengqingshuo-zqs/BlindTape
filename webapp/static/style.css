@@ -24,6 +24,26 @@ body {
   border-bottom: 1px solid #262a36;
 }
 
+#ma-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #171a23;
+  border-bottom: 1px solid #262a36;
+  font-size: 13px;
+  color: #c9d1e0;
+}
+
+#ma-row input[type="number"] {
+  width: 60px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #333a4a;
+  background: #0f1117;
+  color: #e6e6e6;
+}
+
 #chart-container, #review-chart-container {
   width: 100%;
   height: 320px;
@@ -43,13 +63,25 @@ body {
 #size-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 14px;
   margin-bottom: 10px;
 }
 
-#size-row input[type="range"] {
+.size-label {
+  color: #8b93a7;
+}
+
+#size-value {
   flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.stepper-btn {
+  width: 40px;
+  padding: 8px 0;
+  background: #2a2f3d;
 }
 
 #action-buttons, #flow-buttons {

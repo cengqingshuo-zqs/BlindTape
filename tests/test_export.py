@@ -13,7 +13,9 @@ def _sample():
         "open": [10, 20, 15], "high": [10, 20, 15], "low": [10, 20, 15], "close": [10, 20, 15],
         "volume": [100, 100, 100], "amount": [1000, 2000, 1500],
     })
-    return Sample(symbol="510300", name="沪深300ETF", start_date="2024-01-02", end_date="2024-01-04", ohlcv=ohlcv)
+    context = pd.DataFrame(columns=ohlcv.columns)
+    return Sample(symbol="510300", name="沪深300ETF", start_date="2024-01-02", end_date="2024-01-04",
+                  ohlcv=ohlcv, context_ohlcv=context)
 
 
 def test_build_export_revealed_includes_real_identity():

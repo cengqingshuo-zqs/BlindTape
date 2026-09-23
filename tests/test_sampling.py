@@ -36,14 +36,34 @@ def test_sample_window_returns_requested_length(tmp_path):
     db.init_db(db_path)
     _seed_symbol(db_path, "510300", "沪深300ETF", date(2020, 1, 1), 800)
     pool = _pool_df([{"symbol": "510300", "in_pool": True}])
-    cfg = SamplingConfig(window_trading_days=150, max_start_search_attempts=10, max_calendar_span_ratio=1.8)
+    cfg = SamplingConfig(window_trading_days=150, context_days=100,
+                          max_start_search_attempts=10, max_calendar_span_ratio=1.8)
 
     with db.connect(db_path) as conn:
         sample = sampling.sample_window(conn, pool, cfg, rng=random.Random(42))
 
     assert sample.symbol == "510300"
     assert len(sample.ohlcv) == 150
+    assert len(sample.context_ohlcv) == 100
     assert list(sample.ohlcv.columns) == sampling.OHLCV_COLUMNS
+    assert list(sample.context_ohlcv.columns) == sampling.OHLCV_COLUMNS
+    # 背景数据必须紧接在训练窗口之前，不能重叠、不能倒序
+    assert sample.context_ohlcv["trade_date"].iloc[-1] < sample.ohlcv["trade_date"].iloc[0]
+
+
+def test_sample_window_context_days_zero_disables_context(tmp_path):
+    db_path = str(tmp_path / "t.db")
+    db.init_db(db_path)
+    _seed_symbol(db_path, "510300", "沪深300ETF", date(2020, 1, 1), 200)
+    pool = _pool_df([{"symbol": "510300", "in_pool": True}])
+    cfg = SamplingConfig(window_trading_days=150, context_days=0,
+                          max_start_search_attempts=10, max_calendar_span_ratio=1.8)
+
+    with db.connect(db_path) as conn:
+        sample = sampling.sample_window(conn, pool, cfg, rng=random.Random(0))
+
+    assert len(sample.ohlcv) == 150
+    assert len(sample.context_ohlcv) == 0
 
 
 def test_sample_window_skips_symbols_without_enough_data(tmp_path):
@@ -86,7 +106,8 @@ def test_sample_window_rejects_windows_with_long_suspension_gap(tmp_path):
         db.upsert_daily_rows(conn, "159777", combined)
 
     pool = _pool_df([{"symbol": "159777", "in_pool": True}])
-    cfg = SamplingConfig(window_trading_days=150, max_start_search_attempts=5, max_calendar_span_ratio=1.8)
+    cfg = SamplingConfig(window_trading_days=150, context_days=0,
+                          max_start_search_attempts=5, max_calendar_span_ratio=1.8)
 
     with db.connect(db_path) as conn, pytest.raises(RuntimeError):
         sampling.sample_window(conn, pool, cfg, rng=random.Random(0))
