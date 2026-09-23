@@ -2,3 +2,10 @@ akshare
 pandas
 pyyaml
 pytest
+matplotlib
+jupyter
+ipykernel
+nbconvert
+fastapi
+uvicorn
+httpx

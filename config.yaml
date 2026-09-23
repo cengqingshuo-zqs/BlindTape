@@ -27,3 +27,9 @@ pool_filter:
   # 有效交易日数量门槛：本地历史数据行数（非空收盘价）需 >= 此值，
   # 用于剔除上市不久或数据缺失严重的迷你ETF（默认约等于2年交易日数）
   min_valid_trading_days: 480
+
+# 随机抽样引擎（训练窗口）参数
+sampling:
+  window_trading_days: 150      # 每次训练固定抽150个交易日的窗口
+  max_start_search_attempts: 50 # 抽到数据不够/窗口质量不合格时的重试上限
+  max_calendar_span_ratio: 1.8  # 窗口日历天跨度超过理论交易日跨度的倍数就重抽（剔除中途长期停牌的窗口）

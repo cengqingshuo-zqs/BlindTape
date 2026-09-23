@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BlindTape 双盲K线训练</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <header id="status-bar">
+    <span id="progress-label">未开始</span>
+    <span id="position-label">仓位 0%</span>
+  </header>
+
+  <div id="chart-container"></div>
+
+  <div id="controls">
+    <div id="size-row">
+      <label for="size-slider">操作比例：<span id="size-value">30%</span></label>
+      <input type="range" id="size-slider" min="5" max="100" step="5" value="30">
+    </div>
+    <div id="action-buttons">
+      <button id="btn-buy" class="action-btn buy">买入</button>
+      <button id="btn-add" class="action-btn add">加仓</button>
+      <button id="btn-sell" class="action-btn sell">减仓</button>
+      <button id="btn-liquidate" class="action-btn liquidate">清仓</button>
+    </div>
+    <div id="flow-buttons">
+      <button id="btn-next" class="flow-btn">推进下一根 ▶</button>
+      <button id="btn-finish" class="flow-btn finish">结束训练 / 揭晓</button>
+    </div>
+  </div>
+
+  <div id="log-panel">
+    <div id="log-title">操作记录</div>
+    <ul id="log-list"></ul>
+  </div>
+
+</div>
+
+<div id="review-overlay" class="hidden">
+  <div id="review-panel">
+    <h2>揭晓</h2>
+    <p id="review-identity"></p>
+    <p id="review-dates"></p>
+
+    <div id="review-chart-container"></div>
+
+    <h3>权益曲线</h3>
+    <div id="equity-chart-container"></div>
+
+    <div id="review-stats"></div>
+
+    <div id="review-actions">
+      <button id="btn-export">导出本次训练JSON</button>
+      <button id="btn-restart">开始新一轮训练</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

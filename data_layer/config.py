@@ -25,12 +25,22 @@ class PoolFilterConfig:
 
 
 @dataclass
+class SamplingConfig:
+    window_trading_days: int = 150
+    max_start_search_attempts: int = 50
+    # 窗口起止日期的日历天跨度不能超过 "理论交易日跨度 * 此倍数"，
+    # 用于剔除窗口中间夹了长期停牌的情况（行数是连续的，但日期跳空很大）
+    max_calendar_span_ratio: float = 1.8
+
+
+@dataclass
 class Config:
     db_path: str = "data/blindtape.db"
     output_pool_csv: str = "data/tradable_pool.csv"
     adjust: str = "qfq"
     request: RequestConfig = field(default_factory=RequestConfig)
     pool_filter: PoolFilterConfig = field(default_factory=PoolFilterConfig)
+    sampling: SamplingConfig = field(default_factory=SamplingConfig)
 
 
 def load_config(path: str | Path = "config.yaml") -> Config:
@@ -50,5 +60,8 @@ def load_config(path: str | Path = "config.yaml") -> Config:
 
     for key, value in (raw.get("pool_filter") or {}).items():
         setattr(cfg.pool_filter, key, value)
+
+    for key, value in (raw.get("sampling") or {}).items():
+        setattr(cfg.sampling, key, value)
 
     return cfg

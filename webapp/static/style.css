@@ -1,0 +1,167 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0f1117;
+  color: #e6e6e6;
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #171a23;
+  font-size: 14px;
+  border-bottom: 1px solid #262a36;
+}
+
+#chart-container, #review-chart-container {
+  width: 100%;
+  height: 320px;
+}
+
+#equity-chart-container {
+  width: 100%;
+  height: 160px;
+}
+
+#controls {
+  padding: 12px 16px;
+  background: #12141c;
+  border-top: 1px solid #262a36;
+}
+
+#size-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+#size-row input[type="range"] {
+  flex: 1;
+}
+
+#action-buttons, #flow-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#flow-buttons {
+  grid-template-columns: 2fr 1fr;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 14px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.action-btn.buy { background: #d94848; }
+.action-btn.add { background: #e0873a; }
+.action-btn.sell { background: #3a7fe0; }
+.action-btn.liquidate { background: #444a5a; }
+
+.flow-btn { background: #2b6f4f; }
+.flow-btn.finish { background: #7a3ab0; }
+
+#log-panel {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  background: #0f1117;
+}
+
+#log-title {
+  font-size: 13px;
+  color: #8b93a7;
+  margin-bottom: 6px;
+}
+
+#log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+#log-list li {
+  padding: 4px 0;
+  border-bottom: 1px solid #1c2029;
+}
+
+#review-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  overflow-y: auto;
+  z-index: 10;
+}
+
+#review-overlay.hidden {
+  display: none;
+}
+
+#review-panel {
+  max-width: 720px;
+  margin: 24px auto;
+  background: #171a23;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+#review-panel h2 {
+  margin-top: 0;
+}
+
+#review-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+#review-stats .stat-item {
+  background: #0f1117;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+#review-stats .stat-item .label {
+  color: #8b93a7;
+  font-size: 12px;
+}
+
+#review-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#review-actions button {
+  flex: 1;
+  background: #2b6f4f;
+}
+
+#btn-restart { background: #3a7fe0; }
